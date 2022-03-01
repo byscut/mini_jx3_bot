@@ -73,7 +73,7 @@ class Jx3WebSocket(object):
         else:
             # 分发事件
             event = ws_event_factory(msg_type, data['data'])
-            logger.debug(event.log)
+            # logger.debug(event.log)
             if event:
                 bots = get_bots()
                 for _, one_bot in bots.items():

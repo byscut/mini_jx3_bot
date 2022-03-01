@@ -156,16 +156,16 @@ async def _(event: GroupMessageEvent, server: str = Depends(get_server_1)):
 
     msg = f'日常[{server}]\n'
     msg += f'当前时间：{data.get("date")} 星期{data.get("week")}\n'
-    msg += f'今日大战：{data.get("dayWar")}\n'
-    msg += f'今日战场：{data.get("dayBattle")}\n'
-    msg += f'公共任务：{data.get("dayPublic")}\n'
-    msg += f'阵营任务：{data.get("dayCamp")}\n'
+    msg += f'今日大战：{data.get("war")}\n'
+    msg += f'今日战场：{data.get("battle")}\n'
+    msg += f'公共任务：{data.get("public")}\n'
+    msg += f'阵营任务：{data.get("camp")}\n'
     msg += DAILIY_LIST.get(data.get("week"))
-    if data.get("dayDraw") is not None:
-        msg += f'美人画像：{data.get("dayDraw")}\n'
-    msg += f'\n武林通鉴·公共任务\n{data.get("weekPublic")}\n'
-    msg += f'武林通鉴·秘境任务\n{data.get("weekFive")}\n'
-    msg += f'武林通鉴·团队秘境\n{data.get("weekTeam")}'
+    if data.get("draw") is not None:
+        msg += f'美人画像：{data.get("draw")}\n'
+    msg += f'\n武林通鉴·公共任务\n{data.get("team")[0]}\n'
+    msg += f'武林通鉴·秘境任务\n{data.get("team")[1]}\n'
+    msg += f'武林通鉴·团队秘境\n{data.get("team")[2]}'
     await daily_query.finish(msg)
 
 
@@ -227,7 +227,7 @@ async def _(event: GroupMessageEvent, name: str = Depends(get_profession)):
         msg = f"查询失败，{msg}"
         await qixue_query.finish(msg)
 
-    img = data.get('all')
+    img = data.get('master')
     msg = MessageSegment.image(img)
     await qixue_query.finish(msg)
 
@@ -247,7 +247,6 @@ async def _(event: GroupMessageEvent, name: str = Depends(get_profession)):
         await medicine_query.finish(msg)
 
     name = data.get('name')
-    data = data.get('data')
     msg = f'[{name}]小药：\n'
     msg += f'增强食品：{data.get("heighten_food")}\n'
     msg += f'辅助食品：{data.get("auxiliary_food")}\n'
@@ -384,6 +383,7 @@ async def _(event: GroupMessageEvent, name: str = Depends(get_name)):
     item_name = data.get("name")
     item_info = data.get("info")
     item_img = data.get("upload")
+    # TODO：待修复
     item_data = source.handle_data_price(data.get("data"))
     img = await browser.template_to_image(pagename=pagename,
                                           name=item_name,
