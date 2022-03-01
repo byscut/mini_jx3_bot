@@ -1,6 +1,6 @@
 import time
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 from src.modules.group_info import GroupInfo
 from src.utils.log import logger
@@ -40,6 +40,9 @@ async def get_data_from_api(app_name: str, group_id: int, params: dict, need_tic
             ticket = await ticket_manager.get_ticket()
             params["ticket"] = ticket
             if not ticket:
+                logger.debug(
+                    f"<y>群{group_id}</y> | {app_name} | 查询失败，未找到ticket"
+                )
                 return "未找到合适的ticket，请联系管理员", {}
             try:
                 return await jx3_searcher.get_data_from_api(group_id, app_name, params)
@@ -64,7 +67,7 @@ async def get_data_from_api(app_name: str, group_id: int, params: dict, need_tic
 # -------------------------------------------------------------
 
 
-def handle_data_price(data: list[list[dict]]) -> dict:
+def handle_data_price(data: List[List[dict]]) -> dict:
     '''处理物价数据'''
     req_data = {}
     for one_data in data:
@@ -77,7 +80,7 @@ def handle_data_price(data: list[list[dict]]) -> dict:
     return req_data
 
 
-def handle_data_serendipity(data: list[dict]) -> list[dict]:
+def handle_data_serendipity(data: List[dict]) -> List[dict]:
     '''处理奇遇统计'''
     req_data = []
     for one_data in data:
@@ -95,7 +98,7 @@ def handle_data_serendipity(data: list[dict]) -> list[dict]:
     return req_data
 
 
-def handle_data_serendipity_list(data: list[dict]) -> list[dict]:
+def handle_data_serendipity_list(data: List[dict]) -> List[dict]:
     '''处理奇遇统计数据'''
     req_data = []
     for one_data in data:
@@ -113,7 +116,7 @@ def handle_data_serendipity_list(data: list[dict]) -> list[dict]:
     return req_data
 
 
-def handle_data_serendipity_summary(data: list[dict]) -> list[dict]:
+def handle_data_serendipity_summary(data: List[dict]) -> List[dict]:
     '''处理奇遇汇总数据'''
     req_data = []
     for _data in data:

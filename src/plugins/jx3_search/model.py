@@ -1,5 +1,5 @@
 import time
-from typing import Optional, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 
 from httpx import AsyncClient
 from src.modules.search_record import SearchRecord
@@ -62,7 +62,7 @@ class SearchManager(object):
 
     _main_site: str
     '''jx3api主站url'''
-    _app_dict: dict[str, dict[str, Union[str, int]]]
+    _app_dict: Dict[str, Dict[str, Union[str, int]]]
     '''app字典'''
 
     def __init__(self):
@@ -156,6 +156,9 @@ class Jx3Searcher(object):
         # 判断cd
         flag, cd_time = await self._search_manager.search_record(group_id, app_name)
         if not flag:
+            logger.debug(
+                f"<y>群{group_id}</y> | <g>{app_name}</g> | 冷却中：{cd_time}"
+            )
             msg = f"[{app_name}]冷却中（{cd_time}）"
             return msg, {}
 
@@ -167,7 +170,11 @@ class Jx3Searcher(object):
             req = await self._client.get(url=url, params=params)
             req_json: dict = req.json()
             msg: str = req_json['msg']
-            return msg, req_json['data']
+            data = req_json['data']
+            logger.debug(
+                f"<y>群{group_id}</y> | <g>{app_name}</g> | 返回：{data}"
+            )
+            return msg, data
         except Exception as e:
             error = str(e)
             logger.error(

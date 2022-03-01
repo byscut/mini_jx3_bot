@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import Tuple
+from typing import Dict
 
 import websockets
 from nonebot import get_bots
@@ -65,7 +65,7 @@ class Jx3WebSocket(object):
     async def _handle_msg(self, message: str):
         '''处理回复数据'''
         data = json.loads(message)
-        logger.success(data)
+        # logger.success(data)
         msg_type: int = data['type']
         # 判断首次信息
         if msg_type == 10000:
@@ -79,7 +79,7 @@ class Jx3WebSocket(object):
                 for _, one_bot in bots.items():
                     await handle_event(one_bot, event)
 
-    def _handle_first_recv(self, data: dict[str, str]):
+    def _handle_first_recv(self, data: Dict[str, str]):
         '''处理首次接收事件'''
         def _to_bool(string: str) -> bool:
             return (string == "已开启")
@@ -92,26 +92,34 @@ class Jx3WebSocket(object):
         except Exception:
             pass
 
-    async def init(self) -> Tuple[bool, str]:
+    async def init(self) -> bool:
         '''初始化'''
         ws_path: str = config.jx3api['ws_path']
         ws_token = config.jx3api['ws_token']
         if ws_token is None:
             ws_token = ""
         headers = {"token": ws_token}
-        logger.debug(f"正在链接jx3api的ws服务器：{ws_path}")
-        try:
-            self._ws = await websockets.connect(uri=ws_path,
-                                                extra_headers=headers,
-                                                ping_interval=20,
-                                                ping_timeout=20,
-                                                close_timeout=10)
-            asyncio.create_task(self._task())
-            return True, ""
-        except Exception as e:
-            logger.error(
-                f"<r>链接到ws服务器时发生错误：{str(e)}</r>")
-            return False, str(e)
+        logger.debug(f"<g>ws_server</g> | 正在链接jx3api的ws服务器：{ws_path}")
+        for i in range(1, 101):
+            try:
+                logger.debug(
+                    f"<g>ws_server</g> | 正在开始第 {i} 次尝试"
+                )
+                self._ws = await websockets.connect(uri=ws_path,
+                                                    extra_headers=headers,
+                                                    ping_interval=20,
+                                                    ping_timeout=20,
+                                                    close_timeout=10)
+                asyncio.create_task(self._task())
+                logger.debug(
+                    "<g>ws_server</g> | ws连接成功！"
+                )
+                return True
+            except Exception as e:
+                logger.error(
+                    f"<r>链接到ws服务器时发生错误：{str(e)}</r>")
+                asyncio.sleep(1)
+        return False
 
     async def close(self):
         '''关闭ws链接'''
