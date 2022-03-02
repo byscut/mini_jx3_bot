@@ -63,7 +63,7 @@ default:
   # 插件debug日志是否显示在控制台
   logger_debug: true
   # 每个群默认绑定服务器
-  server: 幽月轮
+  server: 斗转星移
   # 是否接收添加好友请求
   access_firend: true
   # 是否接收加群请求
@@ -81,7 +81,7 @@ default:
   # 默认成员离开说辞
   robot_someone_left: 默默地离开了我们……
   # 群默认晚安开关
-  robot_goodnight_status: true
+  robot_goodnight_status: false
   # 默认晚安说辞
   robot_goodnight: 我要去睡觉了，大家晚安……
   # 是否开启智能私聊，开启后私聊机器人会获得回复
