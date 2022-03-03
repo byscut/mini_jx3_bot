@@ -140,6 +140,10 @@ JX3_APP = {
         "app": "/app/equip",
         "cd": 0
     },
+    "图谱查询": {
+        "app": "/app/travel",
+        "cd": 0
+    },
     "奇穴查询": {
         "app": "/app/qixue",
         "cd": 0

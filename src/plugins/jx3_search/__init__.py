@@ -28,6 +28,8 @@ Regex = {
     "日常查询": r"(^日常$)|(^日常 [\u4e00-\u9fa5]+$)",
     "开服查询": r"(^开服$)|(^开服 [\u4e00-\u9fa5]+$)",
     "金价查询": r"(^金价$)|(^金价 [\u4e00-\u9fa5]+$)",
+    "沙盘查询": r"(^沙盘$)|(^沙盘 [\u4e00-\u9fa5]+$)",
+    "图谱查询": r"(^图谱 [\u4e00-\u9fa5]+$)|(^[\u4e00-\u9fa5]+图谱$)",
     "奇穴查询": r"(^奇穴 [\u4e00-\u9fa5]+$)|(^[\u4e00-\u9fa5]+奇穴$)",
     "小药查询": r"(^小药 [\u4e00-\u9fa5]+$)|(^[\u4e00-\u9fa5]+小药$)",
     "配装查询": r"(^配装 [\u4e00-\u9fa5]+$)|(^[\u4e00-\u9fa5]+配装$)",
@@ -51,7 +53,9 @@ Regex = {
 daily_query = on_regex(pattern=Regex['日常查询'], permission=GROUP, priority=5, block=True)
 server_query = on_regex(pattern=Regex['开服查询'], permission=GROUP, priority=5, block=True)
 gold_query = on_regex(pattern=Regex['金价查询'], permission=GROUP, priority=5, block=True)
+shapan_query = on_regex(pattern=Regex['沙盘查询'], permission=GROUP, priority=5, block=True)
 qixue_query = on_regex(pattern=Regex['奇穴查询'], permission=GROUP, priority=5, block=True)
+tupu_query = on_regex(pattern=Regex['图谱查询'], permission=GROUP, priority=5, block=True)
 medicine_query = on_regex(pattern=Regex['小药查询'], permission=GROUP, priority=5, block=True)
 equip_group_query = on_regex(pattern=Regex['配装查询'], permission=GROUP, priority=5, block=True)
 macro_query = on_regex(pattern=Regex['宏查询'], permission=GROUP, priority=5, block=True)
@@ -123,6 +127,11 @@ def get_name(event: GroupMessageEvent) -> str:
     return event.get_plaintext().split(" ")[-1]
 
 
+async def get_maps(matcher: Matcher, name: str = Depends(get_ex_name)) -> str:
+    '''获取职业名称'''
+    return name
+
+
 async def get_profession(matcher: Matcher, name: str = Depends(get_ex_name)) -> str:
     '''获取职业名称'''
     for key, xinfa in PROFESSION.items():
@@ -188,6 +197,25 @@ async def _(event: GroupMessageEvent, server: str = Depends(get_server_1)):
     await server_query.finish(msg)
 
 
+@shapan_query.handle()
+async def _(event: GroupMessageEvent, name: str = Depends(get_server_1)):
+    '''沙盘查询'''
+    logger.info(
+        f"<y>群{event.group_id}</y> | <g>{event.user_id}</g> | 沙盘查询 | 请求：{name}"
+    )
+    params = {
+        "server": name
+    }
+    msg, data = await source.get_data_from_api(app_name="沙盘查询", group_id=event.group_id,  params=params)
+    if msg != "success" or len(data) == 0:
+        msg = f"查询失败，{msg}"
+        await qixue_query.finish(msg)
+
+    img = data[0].get('url')
+    msg = MessageSegment.text(f'{data[0].get("server")} 沙盘：\n') + MessageSegment.image(img)
+    await qixue_query.finish(msg)
+
+
 @gold_query.handle()
 async def _(event: GroupMessageEvent, server: str = Depends(get_server_1)):
     '''金价查询'''
@@ -230,6 +258,29 @@ async def _(event: GroupMessageEvent, name: str = Depends(get_profession)):
     img = data.get('master')
     msg = MessageSegment.image(img)
     await qixue_query.finish(msg)
+
+
+@tupu_query.handle()
+async def _(event: GroupMessageEvent, name: str = Depends(get_maps)):
+    '''图谱查询'''
+    logger.info(
+        f"<y>群{event.group_id}</y> | <g>{event.user_id}</g> | 图谱查询 | 请求：{name}"
+    )
+    params = {
+        "name": name
+    }
+    msg, data = await source.get_data_from_api(app_name="图谱查询", group_id=event.group_id,  params=params)
+    if msg != "success":
+        msg = f"查询失败，{msg}"
+        await tupu_query.finish(msg)
+
+    msg = f'[{name}]图谱：\n'
+    for tupu in data:
+        msg += f'家具名称：{tupu.get("name")}\t'
+        msg += f'家具品质：{tupu.get("quality")}\n'
+        msg += f'家具五维(观赏/实用/坚固/风水/趣味)：{tupu.get("view_score")}/{tupu.get("practical_score")}/{tupu.get("hard_score")}/{tupu.get("geomantic_score")}/{tupu.get("interesting_score")}\n'
+
+    await tupu_query.finish(msg)
 
 
 @medicine_query.handle()
