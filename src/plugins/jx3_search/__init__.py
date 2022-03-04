@@ -32,6 +32,7 @@ class REGEX(Enum):
     开服检查 = r"(^开服$)|(^开服 [\u4e00-\u9fa5]+$)"
     金价比例 = r"(^金价$)|(^金价 [\u4e00-\u9fa5]+$)"
     沙盘图片 = r"(^沙盘$)|(^沙盘 [\u4e00-\u9fa5]+$)"
+    查器物谱 = r"(^图谱 [\u4e00-\u9fa5]+$)|(^[\u4e00-\u9fa5]+图谱$)"
     推荐小药 = r"(^小药 [\u4e00-\u9fa5]+$)|(^[\u4e00-\u9fa5]+小药$)"
     推荐装备 = r"(^配装 [\u4e00-\u9fa5]+$)|(^[\u4e00-\u9fa5]+配装$)"
     推荐奇穴 = r"(^奇穴 [\u4e00-\u9fa5]+$)|(^[\u4e00-\u9fa5]+奇穴$)"
@@ -49,6 +50,15 @@ class REGEX(Enum):
     装备属性 = r"(^((装备)|(属性)) [(\u4e00-\u9fa5)|(@)]+$)|(^((装备)|(属性)) [\u4e00-\u9fa5]+ [(\u4e00-\u9fa5)|(@)]+$)"
 
 
+QUALITY_DICT = {
+    1: "白",
+    2: "绿",
+    3: "蓝",
+    4: "紫",
+    5: "橙"
+}
+'''装备品质字典'''
+
 # ----------------------------------------------------------------
 #   matcher列表，定义查询的mathcer
 # ----------------------------------------------------------------
@@ -56,6 +66,7 @@ daily_query = on_regex(pattern=REGEX.日常任务.value, permission=GROUP, prior
 server_query = on_regex(pattern=REGEX.开服检查.value, permission=GROUP, priority=5, block=True)
 gold_query = on_regex(pattern=REGEX.金价比例.value, permission=GROUP, priority=5, block=True)
 sand_query = on_regex(pattern=REGEX.沙盘图片.value, permission=GROUP, priority=5, block=True)
+tupu_query = on_regex(pattern=REGEX.查器物谱.value, permission=GROUP, priority=5, block=True)
 qixue_query = on_regex(pattern=REGEX.推荐奇穴.value, permission=GROUP, priority=5, block=True)
 medicine_query = on_regex(pattern=REGEX.推荐小药.value, permission=GROUP, priority=5, block=True)
 equip_group_query = on_regex(pattern=REGEX.推荐装备.value, permission=GROUP, priority=5, block=True)
@@ -138,6 +149,11 @@ async def get_profession(matcher: Matcher, name: str = Depends(get_ex_name)) -> 
     # 未找到职业
     msg = f"未找到职业[{name}]，请检查参数。"
     await matcher.finish(msg)
+
+
+async def get_maps(matcher: Matcher, name: str = Depends(get_ex_name)) -> str:
+    '''获取地图名称'''
+    return name
 
 
 # ----------------------------------------------------------------
@@ -239,6 +255,29 @@ async def _(event: GroupMessageEvent, server: str = Depends(get_server_1)):
     day = datetime.fromtimestamp(time).strftime("%m-%d %H:%M")
     msg = f"【{server}】沙盘，更新时间：{day}"+MessageSegment.image(url)
     await sand_query.finish(msg)
+
+
+@tupu_query.handle()
+async def _(event: GroupMessageEvent, name: str = Depends(get_maps)):
+    '''图谱查询'''
+    logger.info(
+        f"<y>群{event.group_id}</y> | <g>{event.user_id}</g> | 图谱查询 | 请求：{name}"
+    )
+    params = {
+        "name": name
+    }
+    msg, data = await source.get_data_from_api(app_name="图谱查询", group_id=event.group_id,  params=params)
+    if msg != "success":
+        msg = f"查询失败，{msg}"
+        await tupu_query.finish(msg)
+
+    msg = f'[{name}]图谱：\n'
+    for tupu in data:
+        msg += f'家具名称：{tupu.get("name")}\t'
+        msg += f'家具品质：{QUALITY_DICT.get(tupu.get("quality"), tupu.get("quality"))}\n'
+        msg += f'家具五维(观赏/实用/坚固/风水/趣味)：{tupu.get("view_score")}/{tupu.get("practical_score")}/{tupu.get("hard_score")}/{tupu.get("geomantic_score")}/{tupu.get("interesting_score")}\n'
+
+    await tupu_query.finish(msg)
 
 
 @qixue_query.handle()
