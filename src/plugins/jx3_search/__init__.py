@@ -266,7 +266,7 @@ async def _(event: GroupMessageEvent, name: str = Depends(get_maps)):
     params = {
         "name": name
     }
-    msg, data = await source.get_data_from_api(app_name="图谱查询", group_id=event.group_id,  params=params)
+    msg, data = await source.get_data_from_api(app=JX3APP.查器物谱, group_id=event.group_id,  params=params)
     if msg != "success":
         msg = f"查询失败，{msg}"
         await tupu_query.finish(msg)
