@@ -1,4 +1,5 @@
 import time
+from abc import abstractmethod
 from datetime import datetime
 from typing import List, Optional
 
@@ -18,11 +19,6 @@ class WsClosed(BaseEvent):
     def __init__(self, reason: str):
         super().__init__()
         self.reason = reason
-
-    @property
-    def log(self) -> str:
-        '''事件日志内容'''
-        return ""
 
     @overrides(BaseEvent)
     def get_type(self) -> str:
@@ -58,7 +54,7 @@ class WsClosed(BaseEvent):
 
 
 class RecvEvent(BaseEvent):
-    '''ws推送事件基类'''
+    '''ws推送事件'''
     __event__ = "WsRecv"
     post_type: str = "WsRecv"
     message_type: Optional[str]
@@ -66,9 +62,10 @@ class RecvEvent(BaseEvent):
     '''影响服务器'''
 
     @property
+    @abstractmethod
     def log(self) -> str:
         '''事件日志内容'''
-        return ""
+        raise NotImplementedError
 
     @overrides(BaseEvent)
     def get_type(self) -> str:
@@ -105,6 +102,38 @@ class RecvEvent(BaseEvent):
     def is_tome(self) -> bool:
         return False
 
+    @staticmethod
+    def create_event(_type: int, data: dict) -> Optional["RecvEvent"]:
+        '''根据推送类型创建事件'''
+        # 奇遇推送
+        if _type == 1001:
+            return SerendipityEvent(data)
+        # 马驹刷新
+        if _type == 1002:
+            return HorseRefreshEvent(data)
+        # 马驹捕获
+        if _type == 1003:
+            return HorseCatchedEvent(data)
+        # 扶摇开启
+        if _type == 1004:
+            return FuyaoRefreshEvent(data)
+        # 扶摇点名
+        if _type == 1005:
+            return FuyaoNamedEvent(data)
+        # 烟花播报
+        if _type == 1006:
+            return FireworksEvent(data)
+        # 游戏消息
+        if _type == 1008:
+            return GameSysMsgEvent(data)
+        # 开服监控
+        if _type == 2001:
+            return ServerStatusEvent(data)
+        # 新闻资讯
+        if _type == 2002:
+            return NewsRecvEvent(data)
+        return None
+
 
 class ServerStatusEvent(RecvEvent):
     '''服务器状态推送事件'''
@@ -115,7 +144,7 @@ class ServerStatusEvent(RecvEvent):
 
     def __init__(self, data: dict):
         '''
-        重写初始化函数
+        服务器状态推送事件
         '''
         super().__init__()
         self.server = data.get('server')
@@ -159,7 +188,7 @@ class NewsRecvEvent(RecvEvent):
 
     def __init__(self, data: dict):
         '''
-        重写初始化函数
+        新闻推送事件
         '''
         super().__init__()
         self.news_type = data.get('type')
@@ -180,7 +209,7 @@ class NewsRecvEvent(RecvEvent):
 
 
 class SerendipityEvent(RecvEvent):
-    '''奇遇推送事件'''
+    '''奇遇播报事件'''
     __event__ = "WsRecv.Serendipity"
     message_type = "Serendipity"
     name: Optional[str]
@@ -194,7 +223,7 @@ class SerendipityEvent(RecvEvent):
 
     def __init__(self, data: dict):
         '''
-        重写初始化函数
+        奇遇播报事件
         '''
         super().__init__()
         self.server = data.get('server')
@@ -232,7 +261,7 @@ class HorseRefreshEvent(RecvEvent):
 
     def __init__(self, data: dict):
         '''
-        重写初始化函数
+        马驹刷新事件
         '''
         super().__init__()
         self.server = data.get('server')
@@ -256,7 +285,7 @@ class HorseRefreshEvent(RecvEvent):
 
 
 class HorseCatchedEvent(RecvEvent):
-    '''马驹被抓事件'''
+    '''马驹捕获事件'''
     __event__ = "WsRecv.HorseCatched"
     message_type = "HorseCatched"
     name: Optional[str]
@@ -270,7 +299,7 @@ class HorseCatchedEvent(RecvEvent):
 
     def __init__(self, data: dict):
         '''
-        重写初始化函数
+        马驹捕获事件
         '''
         super().__init__()
         self.server = data.get('server')
@@ -302,7 +331,7 @@ class FuyaoRefreshEvent(RecvEvent):
 
     def __init__(self, data: dict):
         '''
-        重写初始化函数
+        扶摇开启事件
         '''
         super().__init__()
         self.server = data.get('server')
@@ -333,7 +362,7 @@ class FuyaoNamedEvent(RecvEvent):
 
     def __init__(self, data: dict):
         '''
-        重写初始化函数
+        扶摇点名事件
         '''
         super().__init__()
         self.server = data.get('server')
@@ -356,27 +385,70 @@ class FuyaoNamedEvent(RecvEvent):
         )
 
 
-def ws_event_factory(_type: int, data: dict) -> Optional[RecvEvent]:
-    '''接收事件工厂，根据type创建对应事件'''
-    # 开服推送
-    if _type == 2011:
-        return ServerStatusEvent(data)
-    # 新闻推送
-    if _type == 2012:
-        return NewsRecvEvent(data)
-    # 奇遇推送
-    if _type == 2000:
-        return SerendipityEvent(data)
-    # 马驹刷新
-    if _type == 2001:
-        return HorseRefreshEvent(data)
-    # 马驹捕获
-    if _type == 2002:
-        return HorseCatchedEvent(data)
-    # 扶摇刷新
-    if _type == 2003:
-        return FuyaoRefreshEvent(data)
-    # 扶摇点名
-    if _type == 2004:
-        return FuyaoNamedEvent(data)
-    return None
+class FireworksEvent(RecvEvent):
+    '''烟花播报时间'''
+    __event__ = "WsRecv.Fireworks"
+    message_type = "Fireworks"
+    map: Optional[str]
+    '''烟花地图'''
+    name: Optional[str]
+    '''接受烟花的角色'''
+    sender: Optional[str]
+    '''使用烟花的角色'''
+    recipient: Optional[str]
+    '''烟花名字'''
+    time: Optional[str]
+    '''烟花使用时间'''
+
+    def __init__(self, data: dict):
+        '''烟花播报时间'''
+        super().__init__()
+        self.server = data.get('server')
+        self.map = data.get('map')
+        self.name = data.get('name')
+        self.sender = data.get('sender')
+        self.recipient = data.get('recipient')
+        get_time = int(data.get('time'))
+        start_trans = time.localtime(get_time)
+        self.time = time.strftime('%H:%M:%S', start_trans)
+
+    @property
+    def log(self) -> str:
+        log = f"烟花事件：{self.sender} 在 {self.map} 对 {self.name} 使用了烟花：{self.recipient}。"
+        return log
+
+    @overrides(RecvEvent)
+    def get_message(self) -> Message:
+        return Message(
+            f"[烟花监控] 时间：{self.time}\n{self.sender} 在 {self.map} 对 {self.name} 使用了烟花：{self.recipient}。"
+        )
+
+
+class GameSysMsgEvent(RecvEvent):
+    '''游戏系统频道消息推送'''
+
+    __event__ = "WsRecv.GameSysMsg"
+    message_type = "GameSysMsg"
+    message: Optional[str]
+    '''消息内容'''
+    time: Optional[str]
+    '''消息时间'''
+
+    def __init__(self, data: dict):
+        '''游戏系统频道消息推送'''
+        super().__init__()
+        self.server = data.get('server')
+        get_time = int(data.get('time'))
+        start_trans = time.localtime(get_time)
+        self.time = time.strftime('%H:%M:%S', start_trans)
+
+    @property
+    def log(self) -> str:
+        log = f"系统频道推送：{self.message}。"
+        return log
+
+    @overrides(RecvEvent)
+    def get_message(self) -> Message:
+        return Message(
+            f"[系统频道推送]\n时间：{self.time}\n{self.message}。"
+        )

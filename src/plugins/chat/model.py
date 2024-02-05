@@ -30,8 +30,8 @@ class Chat(object):
     def __init__(self):
         self._client = AsyncClient()
         base_url = config.jx3api['jx3_url']
-        self._tencent_url = base_url+"/share/nlpchat"
-        self._voice_url = base_url+"/share/aliyun"
+        self._tencent_url = base_url+"/realize/nlpchat"
+        self._voice_url = base_url+"/realize/alitts"
         self._nlp_config = config.nlp
         self._voice_config = config.voice
 
@@ -118,7 +118,7 @@ class Chat(object):
         try:
             req = await self._client.get(url=self._voice_url, params=params)
             req_json = req.json()
-            if req['code'] == 200:
+            if req_json['code'] == 200:
                 logger.debug("请求语音成功！")
                 data = req_json['data']
                 voice_url = data['url']

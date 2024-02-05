@@ -12,7 +12,7 @@
     <div class="container">
         <div class="card" style="width: 50rem;" id="main">
             <div class="card-header">
-                <h4 class="text-center text-success">查询帮助</h2>
+                <h4 class="text-center text-success">查询帮助</h4>
             </div>
             <div class="card-body">
                 <table class="table text-center">
@@ -36,6 +36,15 @@
                             <td>查询金价，服务器可省略</td>
                         </tr>
                         <tr>
+                            <td>沙盘 [<span class="text-success">服务器</span>]</td>
+                            <td>查询沙盘图片，服务器可省略</td>
+                        </tr>
+                        <tr>
+                            <td>图谱 <span class="text-danger">地图</span> | <span class="text-danger">地图 </span>图谱</td>
+                            <td>查询地图图谱，如“<span class="text-danger">万花图谱</span>”|“<span class="text-danger">图谱 万花</span>”
+                            </td>
+                        </tr>
+                        <tr>
                             <td>奇穴 <span class="text-danger">职业</span> | <span class="text-danger">职业</span>奇穴</td>
                             <td>查询职业奇穴，如“<span class="text-danger">冰心奇穴</span>”|“<span class="text-danger">奇穴 冰心</span>”
                             </td>
@@ -48,6 +57,11 @@
                         <tr>
                             <td>宏 <span class="text-danger">职业</span> | <span class="text-danger">职业</span>宏</td>
                             <td>查询职业宏，如“<span class="text-danger">冰心宏</span>”|“<span class="text-danger">宏 冰心</span>”
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>阵眼 <span class="text-danger">职业</span> | <span class="text-danger">职业</span>阵眼</td>
+                            <td>查询职业阵眼，如“<span class="text-danger">冰心阵眼</span>”|“<span class="text-danger">阵眼 冰心</span>”
                             </td>
                         </tr>
                         <tr>
@@ -91,7 +105,7 @@
                         {% else %}
                         <tr>
                             <td>查询 [<span class="text-success">服务器</span>] <span class="text-danger">角色名</span></td>
-                            <td>免费奇遇查询，数据不全</td>
+                            <td>免费奇遇查询，需要推栏ticket</td>
                         </tr>
                         {% endif %}
                         <tr>

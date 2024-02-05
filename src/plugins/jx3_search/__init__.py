@@ -1,5 +1,6 @@
 import re
 from datetime import datetime
+from enum import Enum
 
 from nonebot import export, on_regex
 from nonebot.adapters.onebot.v11.event import GroupMessageEvent
@@ -12,7 +13,7 @@ from src.utils.config import config as all_config
 from src.utils.log import logger
 
 from . import data_source as source
-from .config import DAILIY_LIST, PROFESSION
+from .config import DAILIY_LIST, JX3APP, JX3PROFESSION
 
 Export = export()
 Export.plugin_name = "剑三查询"
@@ -21,50 +22,66 @@ Export.plugin_usage = "剑三游戏查询，数据源使用jx3api"
 Export.default_status = True
 
 # ----------------------------------------------------------------
-#   正则字典，与jx3api.com的接口对应
+#   正则枚举，与jx3api.com的接口对应
 # ----------------------------------------------------------------
 
-Regex = {
-    "日常查询": r"(^日常$)|(^日常 [\u4e00-\u9fa5]+$)",
-    "开服查询": r"(^开服$)|(^开服 [\u4e00-\u9fa5]+$)",
-    "金价查询": r"(^金价$)|(^金价 [\u4e00-\u9fa5]+$)",
-    "奇穴查询": r"(^奇穴 [\u4e00-\u9fa5]+$)|(^[\u4e00-\u9fa5]+奇穴$)",
-    "小药查询": r"(^小药 [\u4e00-\u9fa5]+$)|(^[\u4e00-\u9fa5]+小药$)",
-    "配装查询": r"(^配装 [\u4e00-\u9fa5]+$)|(^[\u4e00-\u9fa5]+配装$)",
-    "宏查询": r"(^宏 [\u4e00-\u9fa5]+$)|(^[\u4e00-\u9fa5]+宏$)",
-    "前置查询": r"^((前置)|(条件)) [\u4e00-\u9fa5]+$",
-    "攻略查询": r"(^攻略 [\u4e00-\u9fa5]+$)|(^[\u4e00-\u9fa5]+攻略$)",
-    "更新公告": r"(^更新$)|(^公告$)|(^更新公告$)",
-    "物价查询": r"^物价 [\u4e00-\u9fa5]+$",
-    "奇遇查询": r"(^查询 [(\u4e00-\u9fa5)|(@)]+$)|(^查询 [\u4e00-\u9fa5]+ [(\u4e00-\u9fa5)|(@)]+$)",
-    "奇遇统计": r"(^奇遇 [\u4e00-\u9fa5]+$)|(^奇遇 [\u4e00-\u9fa5]+ [\u4e00-\u9fa5]+$)",
-    "奇遇汇总": r"(^汇总$)|(^汇总 [\u4e00-\u9fa5]+$)",
-    "骚话": r"^骚话$",
-    "战绩查询": r"(^战绩 [(\u4e00-\u9fa5)|(@)]+$)|(^战绩 [\u4e00-\u9fa5]+ [(\u4e00-\u9fa5)|(@)]+$)",
-    "装备查询": r"(^((装备)|(属性)) [(\u4e00-\u9fa5)|(@)]+$)|(^((装备)|(属性)) [\u4e00-\u9fa5]+ [(\u4e00-\u9fa5)|(@)]+$)",
+
+class REGEX(Enum):
+    '''正则枚举'''
+    日常任务 = r"(^日常$)|(^日常 [\u4e00-\u9fa5]+$)"
+    开服检查 = r"(^开服$)|(^开服 [\u4e00-\u9fa5]+$)"
+    金价比例 = r"(^金价$)|(^金价 [\u4e00-\u9fa5]+$)"
+    沙盘图片 = r"(^沙盘$)|(^沙盘 [\u4e00-\u9fa5]+$)"
+    查器物谱 = r"(^图谱 [\u4e00-\u9fa5]+$)|(^[\u4e00-\u9fa5]+图谱$)"
+    推荐小药 = r"(^小药 [\u4e00-\u9fa5]+$)|(^[\u4e00-\u9fa5]+小药$)"
+    推荐装备 = r"(^配装 [\u4e00-\u9fa5]+$)|(^[\u4e00-\u9fa5]+配装$)"
+    推荐奇穴 = r"(^奇穴 [\u4e00-\u9fa5]+$)|(^[\u4e00-\u9fa5]+奇穴$)"
+    查宏命令 = r"(^宏 [\u4e00-\u9fa5]+$)|(^[\u4e00-\u9fa5]+宏$)"
+    阵眼效果 = r"(^阵眼 [\u4e00-\u9fa5]+$)|(^[\u4e00-\u9fa5]+阵眼$)"
+    物品价格 = r"^物价 [\u4e00-\u9fa5]+$"
+    随机骚话 = r"^骚话$"
+    奇遇前置 = r"^((前置)|(条件)) [\u4e00-\u9fa5]+$"
+    奇遇攻略 = r"(^攻略 [\u4e00-\u9fa5]+$)|(^[\u4e00-\u9fa5]+攻略$)"
+    更新公告 = r"(^更新$)|(^公告$)|(^更新公告$)"
+    奇遇查询 = r"(^查询 [(\u4e00-\u9fa5)|(@)]+$)|(^查询 [\u4e00-\u9fa5]+ [(\u4e00-\u9fa5)|(@)]+$)"
+    奇遇统计 = r"(^奇遇 [\u4e00-\u9fa5]+$)|(^奇遇 [\u4e00-\u9fa5]+ [\u4e00-\u9fa5]+$)"
+    奇遇汇总 = r"(^汇总$)|(^汇总 [\u4e00-\u9fa5]+$)"
+    比赛战绩 = r"(^战绩 [(\u4e00-\u9fa5)|(@)]+$)|(^战绩 [\u4e00-\u9fa5]+ [(\u4e00-\u9fa5)|(@)]+$)"
+    装备属性 = r"(^((装备)|(属性)) [(\u4e00-\u9fa5)|(@)]+$)|(^((装备)|(属性)) [\u4e00-\u9fa5]+ [(\u4e00-\u9fa5)|(@)]+$)"
+
+
+QUALITY_DICT = {
+    1: "白",
+    2: "绿",
+    3: "蓝",
+    4: "紫",
+    5: "橙"
 }
-'''查询正则字典'''
+'''装备品质字典'''
 
 # ----------------------------------------------------------------
 #   matcher列表，定义查询的mathcer
 # ----------------------------------------------------------------
-daily_query = on_regex(pattern=Regex['日常查询'], permission=GROUP, priority=5, block=True)
-server_query = on_regex(pattern=Regex['开服查询'], permission=GROUP, priority=5, block=True)
-gold_query = on_regex(pattern=Regex['金价查询'], permission=GROUP, priority=5, block=True)
-qixue_query = on_regex(pattern=Regex['奇穴查询'], permission=GROUP, priority=5, block=True)
-medicine_query = on_regex(pattern=Regex['小药查询'], permission=GROUP, priority=5, block=True)
-equip_group_query = on_regex(pattern=Regex['配装查询'], permission=GROUP, priority=5, block=True)
-macro_query = on_regex(pattern=Regex['宏查询'], permission=GROUP, priority=5, block=True)
-condition_query = on_regex(pattern=Regex['前置查询'], permission=GROUP, priority=5, block=True)
-strategy_query = on_regex(pattern=Regex['攻略查询'], permission=GROUP, priority=5, block=True)
-update_query = on_regex(pattern=Regex['更新公告'], permission=GROUP, priority=5, block=True)
-price_query = on_regex(pattern=Regex['物价查询'], permission=GROUP, priority=5, block=True)
-serendipity_query = on_regex(pattern=Regex['奇遇查询'], permission=GROUP, priority=5, block=True)
-serendipity_list_query = on_regex(pattern=Regex['奇遇统计'], permission=GROUP, priority=5, block=True)
-serendipity_summary_query = on_regex(pattern=Regex['奇遇汇总'], permission=GROUP, priority=5, block=True)
-saohua_query = on_regex(pattern=Regex['骚话'], permission=GROUP, priority=5, block=True)
-match_query = on_regex(pattern=Regex['战绩查询'], permission=GROUP, priority=5, block=True)
-equip_query = on_regex(pattern=Regex['装备查询'], permission=GROUP, priority=5, block=True)
+daily_query = on_regex(pattern=REGEX.日常任务.value, permission=GROUP, priority=5, block=True)
+server_query = on_regex(pattern=REGEX.开服检查.value, permission=GROUP, priority=5, block=True)
+gold_query = on_regex(pattern=REGEX.金价比例.value, permission=GROUP, priority=5, block=True)
+sand_query = on_regex(pattern=REGEX.沙盘图片.value, permission=GROUP, priority=5, block=True)
+tupu_query = on_regex(pattern=REGEX.查器物谱.value, permission=GROUP, priority=5, block=True)
+qixue_query = on_regex(pattern=REGEX.推荐奇穴.value, permission=GROUP, priority=5, block=True)
+medicine_query = on_regex(pattern=REGEX.推荐小药.value, permission=GROUP, priority=5, block=True)
+equip_group_query = on_regex(pattern=REGEX.推荐装备.value, permission=GROUP, priority=5, block=True)
+macro_query = on_regex(pattern=REGEX.查宏命令.value, permission=GROUP, priority=5, block=True)
+zhenyan_query = on_regex(pattern=REGEX.阵眼效果.value, permission=GROUP, priority=5, block=True)
+condition_query = on_regex(pattern=REGEX.奇遇前置.value, permission=GROUP, priority=5, block=True)
+strategy_query = on_regex(pattern=REGEX.奇遇攻略.value, permission=GROUP, priority=5, block=True)
+update_query = on_regex(pattern=REGEX.更新公告.value, permission=GROUP, priority=5, block=True)
+price_query = on_regex(pattern=REGEX.物品价格.value, permission=GROUP, priority=5, block=True)
+serendipity_query = on_regex(pattern=REGEX.奇遇查询.value, permission=GROUP, priority=5, block=True)
+serendipity_list_query = on_regex(pattern=REGEX.奇遇统计.value, permission=GROUP, priority=5, block=True)
+serendipity_summary_query = on_regex(pattern=REGEX.奇遇汇总.value, permission=GROUP, priority=5, block=True)
+saohua_query = on_regex(pattern=REGEX.随机骚话.value, permission=GROUP, priority=5, block=True)
+match_query = on_regex(pattern=REGEX.比赛战绩.value, permission=GROUP, priority=5, block=True)
+equip_query = on_regex(pattern=REGEX.装备属性.value, permission=GROUP, priority=5, block=True)
 help = on_regex(pattern=r"^帮助$", permission=GROUP, priority=5, block=True)
 
 
@@ -125,14 +142,18 @@ def get_name(event: GroupMessageEvent) -> str:
 
 async def get_profession(matcher: Matcher, name: str = Depends(get_ex_name)) -> str:
     '''获取职业名称'''
-    for key, xinfa in PROFESSION.items():
-        for one_name in xinfa:
-            if one_name == name:
-                return key
+    profession = JX3PROFESSION.get_profession(name)
+    if profession:
+        return profession
 
     # 未找到职业
-    msg = f"未找到职业[{name}]，请检查配置。"
+    msg = f"未找到职业[{name}]，请检查参数。"
     await matcher.finish(msg)
+
+
+async def get_maps(matcher: Matcher, name: str = Depends(get_ex_name)) -> str:
+    '''获取地图名称'''
+    return name
 
 
 # ----------------------------------------------------------------
@@ -147,25 +168,27 @@ async def _(event: GroupMessageEvent, server: str = Depends(get_server_1)):
         f"<y>群{event.group_id}</y> | <g>{event.user_id}</g> | 日常查询 | 请求：{server}"
     )
     params = {
-        "server": server
+        "server": server,
+        "next": 0
     }
-    msg, data = await source.get_data_from_api(app_name="日常查询", group_id=event.group_id, params=params)
+    msg, data = await source.get_data_from_api(app=JX3APP.日常任务, group_id=event.group_id, params=params)
     if msg != "success":
         msg = f"查询失败，{msg}"
         await daily_query.finish(msg)
 
     msg = f'日常[{server}]\n'
     msg += f'当前时间：{data.get("date")} 星期{data.get("week")}\n'
-    msg += f'今日大战：{data.get("dayWar")}\n'
-    msg += f'今日战场：{data.get("dayBattle")}\n'
-    msg += f'公共任务：{data.get("dayPublic")}\n'
-    msg += f'阵营任务：{data.get("dayCamp")}\n'
+    msg += f'今日大战：{data.get("war")}\n'
+    msg += f'今日战场：{data.get("battle")}\n'
+    msg += f'公共任务：{data.get("public")}\n'
+    msg += f'阵营任务：{data.get("camp")}\n'
     msg += DAILIY_LIST.get(data.get("week"))
-    if data.get("dayDraw") is not None:
-        msg += f'美人画像：{data.get("dayDraw")}\n'
-    msg += f'\n武林通鉴·公共任务\n{data.get("weekPublic")}\n'
-    msg += f'武林通鉴·秘境任务\n{data.get("weekFive")}\n'
-    msg += f'武林通鉴·团队秘境\n{data.get("weekTeam")}'
+    if data.get("draw") is not None:
+        msg += f'美人画像：{data.get("draw")}\n'
+    team: list = data.get("team")
+    msg += f'\n武林通鉴·公共任务\n{team[0]}\n'
+    msg += f'武林通鉴·秘境任务\n{team[1]}\n'
+    msg += f'武林通鉴·团队秘境\n{team[2]}'
     await daily_query.finish(msg)
 
 
@@ -178,7 +201,7 @@ async def _(event: GroupMessageEvent, server: str = Depends(get_server_1)):
     params = {
         "server": server
     }
-    msg, data = await source.get_data_from_api(app_name="开服查询", group_id=event.group_id,  params=params)
+    msg, data = await source.get_data_from_api(app=JX3APP.开服检查, group_id=event.group_id,  params=params)
     if msg != "success":
         msg = f"查询失败，{msg}"
         await server_query.finish(msg)
@@ -197,7 +220,7 @@ async def _(event: GroupMessageEvent, server: str = Depends(get_server_1)):
     params = {
         "server": server
     }
-    msg, data = await source.get_data_from_api(app_name="金价查询", group_id=event.group_id,  params=params)
+    msg, data = await source.get_data_from_api(app=JX3APP.金价比例, group_id=event.group_id,  params=params)
     if msg != "success":
         msg = f"查询失败，{msg}"
         await gold_query.finish(msg)
@@ -213,6 +236,50 @@ async def _(event: GroupMessageEvent, server: str = Depends(get_server_1)):
     await gold_query.finish(msg)
 
 
+@sand_query.handle()
+async def _(event: GroupMessageEvent, server: str = Depends(get_server_1)):
+    '''沙盘查询'''
+    logger.info(
+        f"<y>群{event.group_id}</y> | <g>{event.user_id}</g> | 沙盘查询 | 请求：{server}"
+    )
+    params = {
+        "server": server
+    }
+    msg, data = await source.get_data_from_api(app=JX3APP.沙盘图片, group_id=event.group_id,  params=params)
+    if msg != "success":
+        msg = f"查询失败，{msg}"
+        await sand_query.finish(msg)
+
+    url = data[0]['url']
+    time: int = data[0]['time']
+    day = datetime.fromtimestamp(time).strftime("%m-%d %H:%M")
+    msg = f"【{server}】沙盘，更新时间：{day}"+MessageSegment.image(url)
+    await sand_query.finish(msg)
+
+
+@tupu_query.handle()
+async def _(event: GroupMessageEvent, name: str = Depends(get_maps)):
+    '''图谱查询'''
+    logger.info(
+        f"<y>群{event.group_id}</y> | <g>{event.user_id}</g> | 图谱查询 | 请求：{name}"
+    )
+    params = {
+        "name": name
+    }
+    msg, data = await source.get_data_from_api(app=JX3APP.查器物谱, group_id=event.group_id,  params=params)
+    if msg != "success":
+        msg = f"查询失败，{msg}"
+        await tupu_query.finish(msg)
+
+    msg = f'[{name}]图谱：\n'
+    for tupu in data:
+        msg += f'家具名称：{tupu.get("name")}\t'
+        msg += f'家具品质：{QUALITY_DICT.get(tupu.get("quality"), tupu.get("quality"))}\n'
+        msg += f'家具五维(观赏/实用/坚固/风水/趣味)：{tupu.get("view_score")}/{tupu.get("practical_score")}/{tupu.get("hard_score")}/{tupu.get("geomantic_score")}/{tupu.get("interesting_score")}\n'
+
+    await tupu_query.finish(msg)
+
+
 @qixue_query.handle()
 async def _(event: GroupMessageEvent, name: str = Depends(get_profession)):
     '''奇穴查询'''
@@ -222,13 +289,14 @@ async def _(event: GroupMessageEvent, name: str = Depends(get_profession)):
     params = {
         "name": name
     }
-    msg, data = await source.get_data_from_api(app_name="奇穴查询", group_id=event.group_id,  params=params)
+    msg, data = await source.get_data_from_api(app=JX3APP.推荐奇穴, group_id=event.group_id,  params=params)
     if msg != "success":
         msg = f"查询失败，{msg}"
         await qixue_query.finish(msg)
 
-    img = data.get('all')
-    msg = MessageSegment.image(img)
+    msg = f'【{data.get("name")}】奇穴推荐，时间：{data.get("time")}\n'
+    msg += "龙门绝境：\n"+MessageSegment.image(data.get("longmen"))
+    msg += "战场任务：\n"+MessageSegment.image(data.get("battle"))
     await qixue_query.finish(msg)
 
 
@@ -241,13 +309,12 @@ async def _(event: GroupMessageEvent, name: str = Depends(get_profession)):
     params = {
         "name": name
     }
-    msg, data = await source.get_data_from_api(app_name="小药查询", group_id=event.group_id,  params=params)
+    msg, data = await source.get_data_from_api(app=JX3APP.推荐小药, group_id=event.group_id,  params=params)
     if msg != "success":
         msg = f"查询失败，{msg}"
         await medicine_query.finish(msg)
 
     name = data.get('name')
-    data = data.get('data')
     msg = f'[{name}]小药：\n'
     msg += f'增强食品：{data.get("heighten_food")}\n'
     msg += f'辅助食品：{data.get("auxiliary_food")}\n'
@@ -266,7 +333,7 @@ async def _(event: GroupMessageEvent, name: str = Depends(get_profession)):
     params = {
         "name": name
     }
-    msg, data = await source.get_data_from_api(app_name="配装查询", group_id=event.group_id,  params=params)
+    msg, data = await source.get_data_from_api(app=JX3APP.推荐装备, group_id=event.group_id,  params=params)
     if msg != "success":
         msg = f"查询失败，{msg}"
         await equip_group_query.finish(msg)
@@ -285,7 +352,7 @@ async def _(event: GroupMessageEvent, name: str = Depends(get_profession)):
     params = {
         "name": name
     }
-    msg, data = await source.get_data_from_api(app_name="宏查询", group_id=event.group_id,  params=params)
+    msg, data = await source.get_data_from_api(app=JX3APP.查宏命令, group_id=event.group_id,  params=params)
     if msg != "success":
         msg = f"查询失败，{msg}"
         await macro_query.finish(msg)
@@ -297,6 +364,27 @@ async def _(event: GroupMessageEvent, name: str = Depends(get_profession)):
     await macro_query.finish(msg)
 
 
+@zhenyan_query.handle()
+async def _(event: GroupMessageEvent, name: str = Depends(get_profession)):
+    '''阵眼查询'''
+    logger.info(
+        f"<y>群{event.group_id}</y> | <g>{event.user_id}</g> | 阵眼查询 | 请求：{name}"
+    )
+    params = {
+        "name": name
+    }
+    msg, data = await source.get_data_from_api(app=JX3APP.阵眼效果, group_id=event.group_id,  params=params)
+    if msg != "success":
+        msg = f"查询失败，{msg}"
+        await zhenyan_query.finish(msg)
+
+    msg = f"{name}：【{data.get('skillName')}】\n"
+    descs: list[dict] = data.get("descs")
+    for i in descs:
+        msg += f"{i.get('name')}：{i.get('desc')}\n"
+    await zhenyan_query.finish(msg)
+
+
 @condition_query.handle()
 async def _(event: GroupMessageEvent, name: str = Depends(get_name)):
     '''前置查询'''
@@ -306,7 +394,7 @@ async def _(event: GroupMessageEvent, name: str = Depends(get_name)):
     params = {
         "name": name
     }
-    msg, data = await source.get_data_from_api(app_name="前置查询", group_id=event.group_id,  params=params)
+    msg, data = await source.get_data_from_api(app=JX3APP.奇遇前置, group_id=event.group_id,  params=params)
     if msg != "success":
         msg = f"查询失败，{msg}"
         await condition_query.finish(msg)
@@ -325,7 +413,12 @@ async def _(event: GroupMessageEvent, name: str = Depends(get_ex_name)):
     params = {
         "name": name
     }
-    msg, data = await source.get_data_from_api(app_name="攻略查询", group_id=event.group_id,  params=params)
+    # 判断有没有token
+    token = all_config.jx3api['jx3_token']
+    if token is None:
+        msg, data = await source.get_data_from_api(app=JX3APP.免费奇遇攻略, group_id=event.group_id,  params=params)
+    else:
+        msg, data = await source.get_data_from_api(app=JX3APP.付费奇遇攻略, group_id=event.group_id,  params=params)
     if msg != "success":
         msg = f"查询失败，{msg}"
         await strategy_query.finish(msg)
@@ -354,7 +447,7 @@ async def _(event: GroupMessageEvent):
     logger.info(
         f"<y>群{event.group_id}</y> | <g>{event.user_id}</g> | 骚话 | 请求骚话"
     )
-    msg, data = await source.get_data_from_api(app_name="骚话", group_id=event.group_id, params=None)
+    msg, data = await source.get_data_from_api(app=JX3APP.随机骚话, group_id=event.group_id, params=None)
     if msg != "success":
         msg = f"请求失败，{msg}"
         await saohua_query.finish(msg)
@@ -375,7 +468,7 @@ async def _(event: GroupMessageEvent, name: str = Depends(get_name)):
     params = {
         "name": name
     }
-    msg, data = await source.get_data_from_api(app_name="物价查询", group_id=event.group_id,  params=params)
+    msg, data = await source.get_data_from_api(app=JX3APP.物品价格, group_id=event.group_id,  params=params)
     if msg != "success":
         msg = f"查询失败，{msg}"
         await price_query.finish(msg)
@@ -404,12 +497,7 @@ async def _(event: GroupMessageEvent, server: str = Depends(get_server_2), name:
         "server": server,
         "name": name
     }
-    # 判断有没有token
-    token = all_config.jx3api['jx3_token']
-    if token is None:
-        msg, data = await source.get_data_from_api(app_name="免费奇遇查询", group_id=event.group_id,  params=params)
-    else:
-        msg, data = await source.get_data_from_api(app_name="付费奇遇查询", group_id=event.group_id,  params=params, need_ticket=True)
+    msg, data = await source.get_data_from_api(app=JX3APP.奇遇查询, group_id=event.group_id,  params=params, need_ticket=True)
 
     if msg != "success":
         msg = f"查询失败，{msg}"
@@ -435,7 +523,7 @@ async def _(event: GroupMessageEvent, server: str = Depends(get_server_2), name:
         "server": server,
         "serendipity": name
     }
-    msg, data = await source.get_data_from_api(app_name="奇遇统计", group_id=event.group_id,  params=params)
+    msg, data = await source.get_data_from_api(app=JX3APP.奇遇统计, group_id=event.group_id,  params=params)
     if msg != "success":
         msg = f"查询失败，{msg}"
         await serendipity_list_query.finish(msg)
@@ -459,7 +547,7 @@ async def _(event: GroupMessageEvent, server: str = Depends(get_server_1)):
     params = {
         "server": server
     }
-    msg, data = await source.get_data_from_api(app_name="奇遇汇总", group_id=event.group_id,  params=params)
+    msg, data = await source.get_data_from_api(app=JX3APP.奇遇汇总, group_id=event.group_id,  params=params)
     if msg != "success":
         msg = f"查询失败，{msg}"
         await serendipity_summary_query.finish(msg)
@@ -483,7 +571,7 @@ async def _(event: GroupMessageEvent, server: str = Depends(get_server_2), name:
         "server": server,
         "name": name
     }
-    msg, data = await source.get_data_from_api(app_name="战绩查询", group_id=event.group_id,  params=params, need_ticket=True)
+    msg, data = await source.get_data_from_api(app=JX3APP.比赛战绩, group_id=event.group_id,  params=params, need_ticket=True)
     if msg != "success":
         msg = f"查询失败，{msg}"
         await match_query.finish(msg)
@@ -508,7 +596,7 @@ async def _(event: GroupMessageEvent, server: str = Depends(get_server_2), name:
         "server": server,
         "name": name
     }
-    msg, data = await source.get_data_from_api(app_name="装备属性", group_id=event.group_id,  params=params, need_ticket=True)
+    msg, data = await source.get_data_from_api(app=JX3APP.装备属性, group_id=event.group_id,  params=params, need_ticket=True)
     if msg != "success":
         msg = f"查询失败，{msg}"
         await equip_query.finish(msg)
